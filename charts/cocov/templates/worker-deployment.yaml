@@ -110,11 +110,11 @@ spec:
            */}}
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
-      {{- if .Values.storage.local.volume }}
       volumes:
         - name: dind-certs
           emptyDir:
             medium: Memory
+      {{- if .Values.storage.local.volume }}
         {{- list (mergeOverwrite .Values.storage.local.volume ("{ name: cocov-git-storage-volume }" | fromYaml)) | toYaml | nindent 8 }}
       {{- end }}
       {{- with mergeOverwrite .Values.general.nodeSelector .Values.worker.nodeSelector }}
