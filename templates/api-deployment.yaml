@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-api
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.api.hpa.enabled }}
+  replicas: {{ .Values.api.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cocov-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with (mergeOverwrite .Values.general.podAnnotations .Values.api.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        dev.cocov.k8s/component: api
+        {{- $defaultSelectors := (include "cocov-chart.selectorLabels" .) | fromYaml }}
+        {{- range $key, $value := mergeOverwrite $defaultSelectors .Values.api.labels .Values.general.labels }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "cocov-chart.serviceAccountName" . }}
+      securityContext:
+        {{- range $key, $value := mergeOverwrite .Values.general.podSecurityContext .Values.api.podSecurityContext }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+      containers:
+        - name: api
+          env:
+          {{- include "apiEnvs" . | nindent 12 }}
+          securityContext:
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.api.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          image: {{ include "dockerHubImage" (list "api" (.Values.api.version | default .Values.defaultVersions.api )) }}
+          imagePullPolicy: {{ .Values.general.imagePullPolicy | default "IfNotPresent" }}
+          {{- if and .Values.storage.local.enabled .Values.storage.local.volume }}
+          volumeMounts:
+            - mountPath: {{ .Values.storage.local.mountPath }}
+              name: cocov-git-storage-volume
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+      {{- if and .Values.storage.local.enabled .Values.storage.local.volume }}
+      volumes:
+        {{- list (mergeOverwrite .Values.storage.local.volume ("{ name: cocov-git-storage-volume }" | fromYaml)) | toYaml | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.nodeSelector .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.affinity .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with concat .Values.general.tolerations .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

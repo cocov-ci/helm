@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-worker
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.worker.hpa.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cocov-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with (mergeOverwrite .Values.general.podAnnotations .Values.worker.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        dev.cocov.k8s/component: worker
+        {{- $defaultSelectors := (include "cocov-chart.selectorLabels" .) | fromYaml }}
+        {{- range $key, $value := mergeOverwrite $defaultSelectors .Values.worker.labels .Values.general.labels }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "cocov-chart.serviceAccountName" . }}
+      securityContext:
+        {{- range $key, $value := mergeOverwrite .Values.general.podSecurityContext .Values.worker.podSecurityContext }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+      containers:
+        - name: dind
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: /certs
+          volumeMounts:
+            - mountPath: /certs
+              name: dind-certs
+          image: docker:dind
+          securityContext:
+            privileged: true
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.worker.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          ports:
+            - containerPort: 2376
+          resources:
+           {{- toYaml .Values.worker.dindResources | nindent 12 }}
+        - name: worker
+          env:
+            - name: DOCKER_SOCKET
+              value: tcp://localhost:2376
+            - name: REDIS_URL
+              value: {{ .Values.redis.commonURL }}
+            - name: DOCKER_TLS_CA_PATH
+              value: /certs/client/ca.pem
+            - name: DOCKER_TLS_CERT_PATH
+              value: /certs/client/cert.pem
+            - name: DOCKER_TLS_KEY_PATH
+              value: /certs/client/key.pem
+            - name: MAX_PARALLEL_JOBS
+              value: {{ .Values.worker.maxParallelJobs | quote }}
+            - name: API_URL
+              value: http://{{ include "clusterLocalHost" (list "cocov-api" .)}}
+            - name: SERVICE_TOKEN
+              value: {{ .Values.worker.apiToken }}
+            {{ if and .Values.storage.local.enabled .Values.storage.s3.enabled -}}
+            {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.storage."}}
+            {{- end -}}
+            {{- if .Values.storage.s3.enabled -}}
+            - name: GIT_SERVICE_STORAGE_MODE
+              value: "s3"
+            - name: GIT_SERVICE_S3_BUCKET_NAME
+              value: {{ .Values.storage.s3.bucketName | quote }}
+            {{- else if .Values.storage.local.enabled -}}
+            - name: GIT_SERVICE_STORAGE_MODE
+              value: "local"
+            - name: GIT_SERVICE_LOCAL_STORAGE_PATH
+              value: {{ .Values.storage.local.mountPath | quote }}
+            {{- else -}}
+             {{ fail "No storage mode is configured. Review configuration for cocov.storage"}}
+            {{- end -}}
+            {{- if .Values.cache.enabled }}
+            - name: CACHE_SERVER_URL
+              value: http://{{ include "clusterLocalHost" (list "cocov-cache" .) }}
+            {{- end }}
+          securityContext:
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.worker.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          image: {{ include "dockerHubImage" (list "worker" (.Values.worker.version | default .Values.defaultVersions.worker )) }}
+          imagePullPolicy: {{ .Values.general.imagePullPolicy | default "IfNotPresent" }}
+          volumeMounts:
+            - mountPath: /certs
+              name: dind-certs
+          {{- if .Values.storage.local.volume }}
+            - mountPath: {{ .Values.storage.local.mountPath }}
+              name: cocov-git-storage-volume
+          {{- end }}
+          {{/* TODO @vito: Liveness probe to Worker (COC-72)
+          livenessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http
+           */}}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+      {{- if .Values.storage.local.volume }}
+      volumes:
+        - name: dind-certs
+          emptyDir:
+            medium: Memory
+        {{- list (mergeOverwrite .Values.storage.local.volume ("{ name: cocov-git-storage-volume }" | fromYaml)) | toYaml | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.nodeSelector .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.affinity .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with concat .Values.general.tolerations .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,35 @@
+{{- if .Values.api.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-api-hpa
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "cocov-chart.fullname" . }}-api
+  minReplicas: {{ .Values.api.hpa.minReplicas }}
+  maxReplicas: {{ .Values.api.hpa.maxReplicas }}
+  metrics:
+    {{- if .Values.api.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: AverageValue
+          averageUtilization: {{ .Values.api.hpa.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.api.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: AverageValue
+          averageUtilization: {{ .Values.api.hpa.targetMemoryUtilizationPercentage }}
+    {{- end }}
+    {{- range $idx, $el := .Values.api.hpa.metrics }}
+    - {{ $el }}
+    {{- end }}
+{{- end }}
