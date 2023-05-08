@@ -1,0 +1,52 @@
+{{- if .Values.api.publicIngress.enabled -}}
+{{- $fullName := include "cocov-chart.fullname" . -}}
+{{- if and .Values.api.publicIngress.ingressClassName (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.api.publicIngress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set .Values.api.publicIngress.annotations "kubernetes.io/ingress.class" .Values.api.publicIngress.ingressClassName }}
+  {{- end }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-api-ingress-public
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+  {{- with .Values.api.publicIngress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.api.publicIngress.ingressClassName (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.api.publicIngress.ingressClassName }}
+  {{- end }}
+  {{- if .Values.api.publicIngress.tls }}
+  tls:
+    {{ .Values.api.publicIngress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.api.publicIngress.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /v1/github/events
+            {{- if (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: Prefix
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $fullName }}-api
+                port:
+                  name: http
+              {{- else }}
+              serviceName: {{ $fullName }}-api
+              servicePort: http
+              {{- end }}
+    {{- end }}
+{{- end }}

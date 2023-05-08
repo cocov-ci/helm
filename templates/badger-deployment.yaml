@@ -1,0 +1,74 @@
+{{- if .Values.badger.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-badger
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.badger.hpa.enabled }}
+  replicas: {{ .Values.badger.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cocov-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with (mergeOverwrite .Values.general.podAnnotations .Values.badger.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        dev.cocov.k8s/component: badger
+        {{- $defaultSelectors := (include "cocov-chart.selectorLabels" .) | fromYaml }}
+        {{- range $key, $value := mergeOverwrite $defaultSelectors .Values.badger.labels .Values.general.labels }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "cocov-chart.serviceAccountName" . }}
+      securityContext:
+        {{- range $key, $value := mergeOverwrite .Values.general.podSecurityContext .Values.badger.podSecurityContext }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+      containers:
+        - name: badger
+          env:
+            - name: COCOV_BADGER_BIND_ADDRESS
+              value: 0.0.0.0
+            - name: COCOV_BADGER_API_URL
+              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+            - name: COCOV_BADGER_API_SERVICE_TOKEN
+              value: {{ .Values.badger.apiToken | quote }}
+          securityContext:
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.badger.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          image: {{ include "dockerHubImage" (list "badger" (.Values.badger.version | default .Values.defaultVersions.cache )) }}
+          imagePullPolicy: {{ .Values.general.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.badger.resources | nindent 12 }}
+      {{- with mergeOverwrite .Values.general.nodeSelector .Values.badger.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.affinity .Values.badger.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with concat .Values.general.tolerations .Values.badger.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}

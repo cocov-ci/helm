@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-api
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    dev.cocov.k8s/component: api
+    {{- include "cocov-chart.selectorLabels" . | nindent 4 }}

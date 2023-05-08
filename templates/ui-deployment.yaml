@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-ui
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.ui.hpa.enabled }}
+  replicas: {{ .Values.ui.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cocov-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with (mergeOverwrite .Values.general.podAnnotations .Values.ui.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        dev.cocov.k8s/component: ui
+        {{- $defaultSelectors := (include "cocov-chart.selectorLabels" .) | fromYaml }}
+        {{- range $key, $value := mergeOverwrite $defaultSelectors .Values.ui.labels .Values.general.labels }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "cocov-chart.serviceAccountName" . }}
+      securityContext:
+        {{- range $key, $value := mergeOverwrite .Values.general.podSecurityContext .Values.ui.podSecurityContext }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+      containers:
+        - name: ui
+          env:
+            - name: COCOV_API_URL
+              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+            - name: COCOV_UI_URL
+              value: {{ .Values.ui.externalURL }}
+          securityContext:
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.ui.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          image: {{ include "dockerHubImage" (list "web" (.Values.ui.version | default .Values.defaultVersions.ui )) }}
+          imagePullPolicy: {{ .Values.general.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.ui.resources | nindent 12 }}
+      {{- with mergeOverwrite .Values.general.nodeSelector .Values.ui.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.affinity .Values.ui.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with concat .Values.general.tolerations .Values.ui.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,102 @@
+{{- if .Values.cache.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocov-chart.fullname" . }}-cache
+  labels:
+    {{- include "cocov-chart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.cache.hpa.enabled }}
+  replicas: {{ .Values.cache.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "cocov-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with (mergeOverwrite .Values.general.podAnnotations .Values.cache.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        dev.cocov.k8s/component: cache
+        {{- $defaultSelectors := (include "cocov-chart.selectorLabels" .) | fromYaml }}
+        {{- range $key, $value := mergeOverwrite $defaultSelectors .Values.cache.labels .Values.general.labels }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "cocov-chart.serviceAccountName" . }}
+      securityContext:
+        {{- range $key, $value := mergeOverwrite .Values.general.podSecurityContext .Values.cache.podSecurityContext }}
+        {{ $key }}: {{ toYaml $value }}
+        {{- end }}
+      containers:
+        - name: cache
+          env:
+            - name: REDIS_URL
+              value: {{ .Values.redis.commonURL }}
+            {{- if (and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.s3.enabled) }}
+            {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.cache.cacheStorage." }}
+            {{- end -}}
+            {{- if .Values.cache.cacheStorage.local.enabled }}
+            - name: CACHE_STORAGE_MODE
+              value: "local"
+            - name: CACHE_LOCAL_STORAGE_PATH
+              value: {{ .Values.cache.cacheStorage.local.mountPath | quote }}
+            {{- else if .Values.cache.cacheStorage.s3.enabled }}
+            - name: CACHE_STORAGE_MODE
+              value: "s3"
+            - name: CACHE_S3_BUCKET_NAME
+              value: {{ .Values.cache.cacheStorage.s3.bucketName | quote }}
+            {{- else }}
+            {{ fail "Cache is enabled, but no storage mode is configured. Review configuration for cocov.cache.cacheStorage" }}
+            {{- end }}
+            - name: MAX_PACKAGE_SIZE_BYTES
+              value: {{ (include "sizeInBytes" .Values.cache.packageMaxSize) | quote  }}
+            - name: API_URL
+              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+            - name: API_TOKEN
+              value: {{ .Values.cache.apiToken | quote }}
+          securityContext:
+            {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.cache.securityContext }}
+            {{ $key }}: {{ toYaml $value }}
+            {{- end }}
+          image: {{ include "dockerHubImage" (list "cache" (.Values.cache.version | default .Values.defaultVersions.cache )) }}
+          imagePullPolicy: {{ .Values.general.imagePullPolicy | default "IfNotPresent" }}
+          {{- if and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.local.volume }}
+          volumeMounts:
+            - mountPath: {{ .Values.cache.cacheStorage.local.mountPath }}
+              name: cocov-cache-storage-volume
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          {{/* TODO @vito: Implement probes endpoints (COC-71)
+          livenessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /v1/ping
+              port: http */}}
+          resources:
+            {{- toYaml .Values.cache.resources | nindent 12 }}
+      {{- if and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.local.volume }}
+      volumes:
+        {{- list (mergeOverwrite .Values.cache.cacheStorage.local.volume ("{ name: cocov-cache-storage-volume }" | fromYaml)) | toYaml | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.nodeSelector .Values.cache.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with mergeOverwrite .Values.general.affinity .Values.cache.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with concat .Values.general.tolerations .Values.cache.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}
