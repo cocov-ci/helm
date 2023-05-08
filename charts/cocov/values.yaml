@@ -101,7 +101,7 @@ api:
     # may be set by external tools to store and retrieve arbitrary metadata.
     # They are not queryable and should be preserved when modifying objects.
     # More info http://kubernetes.io/docs/user-guide/annotations
-    annotations: [ ]
+    annotations: { }
 
     # Host is the fully qualified domain name of a network host, as defined by
     # RFC 3986. Note the following deviations from the "host" part of the URI
@@ -131,7 +131,7 @@ api:
     # may be set by external tools to store and retrieve arbitrary metadata.
     # They are not queryable and should be preserved when modifying objects.
     # More info http://kubernetes.io/docs/user-guide/annotations
-    annotations: [ ]
+    annotations: { }
 
     # Host is the fully qualified domain name of a network host, as defined by
     # RFC 3986. Note the following deviations from the "host" part of the URI
@@ -410,7 +410,7 @@ badger:
     # may be set by external tools to store and retrieve arbitrary metadata.
     # They are not queryable and should be preserved when modifying objects.
     # More info http://kubernetes.io/docs/user-guide/annotations
-    annotations: [ ]
+    annotations: { }
 
     # Host is the fully qualified domain name of a network host, as defined by
     # RFC 3986. Note the following deviations from the "host" part of the URI
@@ -493,7 +493,7 @@ ui:
     # may be set by external tools to store and retrieve arbitrary metadata.
     # They are not queryable and should be preserved when modifying objects.
     # More info http://kubernetes.io/docs/user-guide/annotations
-    annotations: [ ]
+    annotations: { }
 
     # Host is the fully qualified domain name of a network host, as defined by
     # RFC 3986. Note the following deviations from the "host" part of the URI
