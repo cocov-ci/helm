@@ -88,7 +88,11 @@ Create the name of the service account to use
 {{- end }}
 
 {{ define "clusterLocalHost" -}}
-{{ mustFirst . }}.{{ (index . 1).Release.Namespace }}.svc.cluster.local
+{{ include "serviceName" . }}.{{ (index . 1).Release.Namespace }}.svc.cluster.local
+{{- end }}
+
+{{ define "serviceName" -}}
+{{ include "cocov-chart.fullname" (index . 1) }}-{{ mustFirst . }}
 {{- end }}
 
 {{ define "apiEnvs" -}}
@@ -150,6 +154,6 @@ Create the name of the service account to use
 - name: COCOV_REPOSITORY_CACHE_MAX_SIZE
   value: {{ (include "sizeInBytes" .Values.cache.repositoryMaxSize) | quote }}
 - name: COCOV_CACHE_SERVICE_URL
-  value: {{ include "clusterLocalHost" (list "cocov-cache" .) }}
+  value: {{ include "clusterLocalHost" (list "cache" .) }}
 {{- end }}
 {{- end }}
