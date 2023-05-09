@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "cocov-chart.labels" . | nindent 4 }}
 spec:
+  {{- if .Values.general.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .Values.general.revisionHistoryLimit }}
+  {{- end }}
   {{- if not .Values.ui.hpa.enabled }}
   replicas: {{ .Values.ui.replicaCount }}
   {{- end }}

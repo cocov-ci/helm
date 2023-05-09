@@ -616,6 +616,7 @@ general:
   securityContext: { }
   imagePullPolicy: IfNotPresent
   labels: { }
+  revisionHistoryLimit:
 
 serviceAccount:
   # Specifies whether a service account should be created
