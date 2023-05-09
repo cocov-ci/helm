@@ -33,7 +33,7 @@ spec:
         - name: ui
           env:
             - name: COCOV_API_URL
-              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+              value: http://{{ include "clusterLocalHost" (list "api" .) }}
             - name: COCOV_UI_URL
               value: {{ .Values.ui.externalURL }}
           securityContext:

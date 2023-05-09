@@ -54,7 +54,7 @@ spec:
             - name: MAX_PACKAGE_SIZE_BYTES
               value: {{ (include "sizeInBytes" .Values.cache.packageMaxSize) | quote  }}
             - name: API_URL
-              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+              value: http://{{ include "clusterLocalHost" (list "api" .) }}
             - name: API_TOKEN
               value: {{ .Values.cache.apiToken | quote }}
           securityContext:

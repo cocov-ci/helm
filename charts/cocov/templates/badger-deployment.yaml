@@ -36,7 +36,7 @@ spec:
             - name: COCOV_BADGER_BIND_ADDRESS
               value: 0.0.0.0
             - name: COCOV_BADGER_API_URL
-              value: http://{{ include "clusterLocalHost" (list "cocov-api" .) }}
+              value: http://{{ include "clusterLocalHost" (list "api" .) }}
             - name: COCOV_BADGER_API_SERVICE_TOKEN
               value: {{ .Values.badger.apiToken | quote }}
           securityContext:
