@@ -156,4 +156,8 @@ Create the name of the service account to use
 - name: COCOV_CACHE_SERVICE_URL
   value: {{ include "clusterLocalHost" (list "cache" .) }}
 {{- end }}
+{{- if and .Values.badger.enabled .Values.api.badger .Values.api.badger.baseURL }}
+- name: COCOV_BADGES_BASE_URL
+  value: {{ .Values.api.badger.baseURL }}
+{{- end }}
 {{- end }}

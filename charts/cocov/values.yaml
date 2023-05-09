@@ -88,6 +88,14 @@ api:
     # database
     password: ""
 
+  # badger must be configured if the badger component is enabled. The API
+  # requires its base URL in order to generate valid URLs for the UI facility.
+  badger:
+    # baseURL is the public URL for the badger service. It is usually the
+    # protocol offered by your ingress, followed by one of the domains
+    # configured to be used by it. Format is http[s]://URL.TO.BADGER
+    baseURL:
+
   # ingress allows the chart to automatically configure an ingress for common
   # operation. This ingress will be used by users, and can be protected behind
   # a VPN, for instance. By default, it is disabled so a custom ingress can be
