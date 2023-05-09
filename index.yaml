@@ -9,7 +9,7 @@ entries:
     name: cocov
     type: application
     urls:
-    - https://github.com/cocov-ci/helm/releases/download/cocov-0.1.5/cocov-0.1.5.tgz
+    - https://charts.cocov.dev/cocov-0.1.5.tgz
     version: 0.1.5
   - apiVersion: v2
     appVersion: 0.1.0
