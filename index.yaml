@@ -3,6 +3,16 @@ entries:
   cocov:
   - apiVersion: v2
     appVersion: 0.1.0
+    created: "2023-05-09T11:14:00.95149001Z"
+    description: A Helm chart for Cocov
+    digest: 1746f806448fb735e27ddea33c13dc6098e70492bdd236c2fb3f3fc0f3bc5dfc
+    name: cocov
+    type: application
+    urls:
+    - https://github.com/cocov-ci/helm/releases/download/cocov-0.1.4/cocov-0.1.4.tgz
+    version: 0.1.4
+  - apiVersion: v2
+    appVersion: 0.1.0
     created: "2023-05-08T21:34:59.303859932Z"
     description: A Helm chart for Cocov
     digest: ff0d684b1ae33426c53f7201e1e8a31ea098ba92133a73aee41487b66366b0c7
@@ -31,4 +41,4 @@ entries:
     urls:
     - https://charts.cocov.dev/cocov-0.1.1.tgz
     version: 0.1.1
-generated: "2023-05-08T21:34:59.303869232Z"
+generated: "2023-05-09T11:14:00.95152681Z"
