@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "cocov-chart.labels" . | nindent 4 }}
 spec:
+  {{- if .Values.general.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .Values.general.revisionHistoryLimit }}
+  {{- end }}
   {{- if not .Values.sidekiq.hpa.enabled }}
   replicas: {{ .Values.sidekiq.replicaCount }}
   {{- end }}
@@ -14,6 +17,7 @@ spec:
   template:
     metadata:
       annotations:
+        kubectl.kubernetes.io/default-container: sidekiq
         {{- with (mergeOverwrite .Values.general.podAnnotations .Values.sidekiq.podAnnotations) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

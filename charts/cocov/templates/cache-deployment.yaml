@@ -6,6 +6,9 @@ metadata:
   labels:
     {{- include "cocov-chart.labels" . | nindent 4 }}
 spec:
+  {{- if .Values.general.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .Values.general.revisionHistoryLimit }}
+  {{- end }}
   {{- if not .Values.cache.hpa.enabled }}
   replicas: {{ .Values.cache.replicaCount }}
   {{- end }}
@@ -15,6 +18,7 @@ spec:
   template:
     metadata:
       annotations:
+        kubectl.kubernetes.io/default-container: cache
         {{- with (mergeOverwrite .Values.general.podAnnotations .Values.cache.podAnnotations) }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
