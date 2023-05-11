@@ -12,6 +12,12 @@ api:
   # composed of 32 hexadecimal characters.
   cryptoKey: ""
 
+  # automaticallyMigrate indicates whether deploying a new version of Cocov
+  # automatically executes its migrations. If disabled, do notice that the API
+  # startupProbe will wait up to 10 minutes for the migrations to be applied
+  # before accepting requests.
+  automaticallyMigrate: true
+
   github:
     # orgName is the name of the GitHub organization in which Cocov is installed
     orgName: ""
