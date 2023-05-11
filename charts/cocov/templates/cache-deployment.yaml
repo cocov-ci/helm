@@ -76,15 +76,17 @@ spec:
             - name: http
               containerPort: 5000
               protocol: TCP
-          {{/* TODO @vito: Implement probes endpoints (COC-71)
+            - containerPort: 4000
+              name: probes
+              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /v1/ping
-              port: http
+              path: /system/probes/liveness
+              port: probes
           readinessProbe:
             httpGet:
-              path: /v1/ping
-              port: http */}}
+              path: /system/probes/readiness
+              port: probes
           resources:
             {{- toYaml .Values.cache.resources | nindent 12 }}
       {{- if and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.local.volume }}

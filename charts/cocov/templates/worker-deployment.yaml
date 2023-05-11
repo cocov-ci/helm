@@ -102,16 +102,18 @@ spec:
             - mountPath: {{ .Values.storage.local.mountPath }}
               name: cocov-git-storage-volume
           {{- end }}
-          {{/* TODO @vito: Liveness probe to Worker (COC-72)
+          ports:
+            - containerPort: 4000
+              name: probes
+              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /v1/ping
-              port: http
+              path: /system/probes/liveness
+              port: probes
           readinessProbe:
             httpGet:
-              path: /v1/ping
-              port: http
-           */}}
+              path: /system/probes/readiness
+              port: probes
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
       volumes:
