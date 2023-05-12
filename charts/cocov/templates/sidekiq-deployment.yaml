@@ -40,7 +40,7 @@ spec:
             - exec
             - sidekiq
           env:
-          {{- include "apiEnvs" . | nindent 12 }}
+          {{- include "apiEnvs" . | nindent 10 }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.sidekiq.securityContext }}
             {{ $key }}: {{ toYaml $value }}
@@ -52,16 +52,18 @@ spec:
             - mountPath: {{ .Values.storage.local.mountPath }}
               name: cocov-git-storage-volume
           {{- end }}
-          {{/* TODO @vito: Liveness probe to Sidekiq (COC-70)
+          ports:
+            - containerPort: 8668
+              name: probes
+              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /v1/ping
-              port: http
+              path: /system/probes/liveness
+              port: probes
           readinessProbe:
             httpGet:
-              path: /v1/ping
-              port: http
-           */}}
+              path: /system/probes/readiness
+              port: probes
           resources:
             {{- toYaml .Values.sidekiq.resources | nindent 12 }}
       {{- if .Values.storage.local.volume }}

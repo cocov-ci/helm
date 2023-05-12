@@ -95,69 +95,62 @@ Create the name of the service account to use
 {{ include "cocov-chart.fullname" (index . 1) }}-{{ mustFirst . }}
 {{- end }}
 
+{{ define "valueOrQuote" -}}
+{{ if and (kindIs "map" .) (or .configMapKeyRef .secretKeyRef) -}}
+valueFrom:
+{{ toYaml . | indent 2 }}
+{{- else -}}
+value: {{ . | quote }}
+{{- end }}
+{{- end }}
+
+{{ define "envVar" -}}
+- name: {{ mustFirst . }}
+{{ include "valueOrQuote" (index . 1) | indent 2 }}
+{{- end }}
+
 {{ define "apiEnvs" -}}
-- name: COCOV_GITHUB_ORG_NAME
-  value: {{ .Values.api.github.orgName | quote }}
-- name: COCOV_GITHUB_APP_ID
-  value: {{ .Values.api.github.app.id | quote }}
-- name: COCOV_GITHUB_APP_PRIVATE_KEY
-  value: {{ .Values.api.github.app.privateKey | quote }}
-- name: COCOV_GITHUB_APP_INSTALLATION_ID
-  value: {{ .Values.api.github.app.installationID | quote }}
-- name: COCOV_GITHUB_WEBHOOK_SECRET_KEY
-  value: {{ .Values.api.github.app.webhookSecret | quote }}
-- name: COCOV_GITHUB_OAUTH_CLIENT_ID
-  value: {{ .Values.api.github.app.clientID | quote }}
-- name: COCOV_GITHUB_OAUTH_CLIENT_SECRET
-  value: {{ .Values.api.github.app.clientSecret | quote }}
-- name: COCOV_DATABASE_USERNAME
-  value: {{ .Values.api.db.username | quote }}
-- name: COCOV_DATABASE_PASSWORD
-  value: {{ .Values.api.db.password | quote }}
-- name: COCOV_DATABASE_NAME
-  value: {{ .Values.api.db.name | quote }}
-- name: COCOV_DATABASE_HOST
-  value: {{ .Values.api.db.host | quote }}
-- name: COCOV_DATABASE_PORT
-  value: {{ .Values.api.db.port | quote }}
-- name: SECRET_KEY_BASE
-  value: {{ .Values.api.secretKeyBase | quote }}
-- name: COCOV_CRYPTOGRAPHIC_KEY
-  value: {{ .Values.api.cryptoKey | quote }}
-- name: COCOV_UI_BASE_URL
-  value: {{ .Values.ui.externalURL | quote }}
-- name: COCOV_ALLOW_OUTSIDE_COLLABORATORS
-  value: {{ .Values.api.github.allowOutsideCollaborators | quote}}
-- name: COCOV_REDIS_URL
-  value: {{ .Values.redis.commonURL | quote }}
-- name: COCOV_REDIS_CACHE_URL
-  value: {{ .Values.redis.cacheURL | quote }}
-- name: COCOV_SIDEKIQ_REDIS_URL
-  value: {{ .Values.redis.sidekiqURL | quote }}
-{{ if and .Values.storage.local.enabled .Values.storage.s3.enabled -}}
+{{- $commonKeys := (dict
+  "COCOV_GITHUB_APP_ID"                .Values.api.github.app.id
+  "COCOV_GITHUB_APP_PRIVATE_KEY"       .Values.api.github.app.privateKey
+  "COCOV_GITHUB_APP_INSTALLATION_ID"   .Values.api.github.app.installationID
+  "COCOV_GITHUB_WEBHOOK_SECRET_KEY"    .Values.api.github.app.webhookSecret
+  "COCOV_GITHUB_OAUTH_CLIENT_ID"       .Values.api.github.app.clientID
+  "COCOV_GITHUB_OAUTH_CLIENT_SECRET"   .Values.api.github.app.clientSecret
+  "COCOV_DATABASE_USERNAME"            .Values.api.db.username
+  "COCOV_DATABASE_PASSWORD"            .Values.api.db.password
+  "COCOV_DATABASE_NAME"                .Values.api.db.name
+  "COCOV_DATABASE_HOST"                .Values.api.db.host
+  "COCOV_DATABASE_PORT"                .Values.api.db.port
+  "SECRET_KEY_BASE"                    .Values.api.secretKeyBase
+  "COCOV_CRYPTOGRAPHIC_KEY"            .Values.api.cryptoKey
+  "COCOV_UI_BASE_URL"                  .Values.ui.externalURL
+  "COCOV_ALLOW_OUTSIDE_COLLABORATORS"  .Values.api.github.allowOutsideCollaborators
+  "COCOV_REDIS_URL"                    .Values.redis.commonURL
+  "COCOV_REDIS_CACHE_URL"              .Values.redis.cacheURL
+  "COCOV_SIDEKIQ_REDIS_URL"            .Values.redis.sidekiqURL
+) -}}
+{{- range $k, $v := $commonKeys -}}
+{{ include "envVar" (list $k $v) }}
+{{ end }}
+
+{{- if and .Values.storage.local.enabled .Values.storage.s3.enabled -}}
 {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.storage."}}
 {{- end -}}
 {{- if .Values.storage.s3.enabled -}}
-- name: COCOV_GIT_SERVICE_STORAGE_MODE
-  value: "s3"
-- name: COCOV_GIT_SERVICE_S3_STORAGE_BUCKET_NAME
-  value: {{ .Values.storage.s3.bucketName | quote }}
+{{ include "envVar" (list "COCOV_GIT_SERVICE_STORAGE_MODE" "s3") }}
+{{ include "envVar" (list "COCOV_GIT_SERVICE_S3_STORAGE_BUCKET_NAME" .Values.storage.s3.bucketName) }}
 {{- else if .Values.storage.local.enabled -}}
-- name: COCOV_GIT_SERVICE_STORAGE_MODE
-  value: "local"
-- name: COCOV_GIT_SERVICE_LOCAL_STORAGE_PATH
-  value: {{ .Values.storage.local.mountPath | quote }}
+{{ include "envVar" (list "COCOV_GIT_SERVICE_STORAGE_MODE" "local") }}
+{{ include "envVar" (list "COCOV_GIT_SERVICE_LOCAL_STORAGE_PATH" .Values.storage.local.mountPath) }}
 {{- else -}}
  {{ fail "No storage mode is configured. Review configuration for cocov.storage"}}
 {{- end -}}
 {{- if .Values.cache.enabled }}
-- name: COCOV_REPOSITORY_CACHE_MAX_SIZE
-  value: {{ (include "sizeInBytes" .Values.cache.repositoryMaxSize) | quote }}
-- name: COCOV_CACHE_SERVICE_URL
-  value: {{ include "clusterLocalHost" (list "cache" .) }}
+{{ include "envVar" (list "COCOV_REPOSITORY_CACHE_MAX_SIZE" (include "sizeInBytes" .Values.cache.repositoryMaxSize)) }}
+{{ include "envVar" (list "COCOV_CACHE_SERVICE_URL" (include "clusterLocalHost" (list "cache" .))) }}
 {{- end }}
 {{- if and .Values.badger.enabled .Values.api.badger .Values.api.badger.baseURL }}
-- name: COCOV_BADGES_BASE_URL
-  value: {{ .Values.api.badger.baseURL }}
+{{ include "envVar" (list "COCOV_BADGES_BASE_URL" .Values.api.badger.baseURL) }}
 {{- end }}
 {{- end }}

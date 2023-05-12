@@ -35,10 +35,8 @@ spec:
       containers:
         - name: ui
           env:
-            - name: COCOV_API_URL
-              value: http://{{ include "clusterLocalHost" (list "api" .) }}
-            - name: COCOV_UI_URL
-              value: {{ .Values.ui.externalURL }}
+          {{- include "envVar" (list "COCOV_API_URL" (printf "http://%s" (include "clusterLocalHost" (list "api" .)))) | nindent 10 }}
+          {{- include "envVar" (list "COCOV_UI_URL" .Values.ui.externalURL) | nindent 10 }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.ui.securityContext }}
             {{ $key }}: {{ toYaml $value }}

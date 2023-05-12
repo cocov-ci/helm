@@ -37,30 +37,22 @@ spec:
       containers:
         - name: cache
           env:
-            - name: REDIS_URL
-              value: {{ .Values.redis.commonURL }}
-            {{- if (and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.s3.enabled) }}
-            {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.cache.cacheStorage." }}
-            {{- end -}}
-            {{- if .Values.cache.cacheStorage.local.enabled }}
-            - name: CACHE_STORAGE_MODE
-              value: "local"
-            - name: CACHE_LOCAL_STORAGE_PATH
-              value: {{ .Values.cache.cacheStorage.local.mountPath | quote }}
-            {{- else if .Values.cache.cacheStorage.s3.enabled }}
-            - name: CACHE_STORAGE_MODE
-              value: "s3"
-            - name: CACHE_S3_BUCKET_NAME
-              value: {{ .Values.cache.cacheStorage.s3.bucketName | quote }}
-            {{- else }}
-            {{ fail "Cache is enabled, but no storage mode is configured. Review configuration for cocov.cache.cacheStorage" }}
-            {{- end }}
-            - name: MAX_PACKAGE_SIZE_BYTES
-              value: {{ (include "sizeInBytes" .Values.cache.packageMaxSize) | quote  }}
-            - name: API_URL
-              value: http://{{ include "clusterLocalHost" (list "api" .) }}
-            - name: API_TOKEN
-              value: {{ .Values.cache.apiToken | quote }}
+          {{- include "envVar" (list "REDIS_URL" .Values.redis.commonURL) | nindent 10 }}
+          {{- if (and .Values.cache.cacheStorage.local.enabled .Values.cache.cacheStorage.s3.enabled) }}
+          {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.cache.cacheStorage." }}
+          {{- end -}}
+          {{- if .Values.cache.cacheStorage.local.enabled }}
+          {{- include "envVar" (list "CACHE_STORAGE_MODE" "local") | nindent 10 }}
+          {{- include "envVar" (list "CACHE_STORAGE_MODE" .Values.cache.cacheStorage.local.mountPath) | nindent 10 }}
+          {{- else if .Values.cache.cacheStorage.s3.enabled }}
+          {{- include "envVar" (list "CACHE_STORAGE_MODE" "s3") | nindent 10 }}
+          {{- include "envVar" (list "CACHE_STORAGE_MODE" .Values.cache.cacheStorage.s3.bucketName) | nindent 10 }}
+          {{- else }}
+          {{ fail "Cache is enabled, but no storage mode is configured. Review configuration for cocov.cache.cacheStorage" }}
+          {{- end }}
+          {{- include "envVar" (list "MAX_PACKAGE_SIZE_BYTES" (include "sizeInBytes" .Values.cache.packageMaxSize)) | nindent 10 }}
+          {{- include "envVar" (list "API_URL" (printf "http://%s" (include "clusterLocalHost" (list "api" .)))) | nindent 10 }}
+          {{- include "envVar" (list "API_TOKEN" .Values.cache.apiToken) | nindent 10 }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.cache.securityContext }}
             {{ $key }}: {{ toYaml $value }}
