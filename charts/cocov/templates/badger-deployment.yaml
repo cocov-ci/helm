@@ -41,8 +41,7 @@ spec:
               value: 0.0.0.0
             - name: COCOV_BADGER_API_URL
               value: http://{{ include "clusterLocalHost" (list "api" .) }}
-            - name: COCOV_BADGER_API_SERVICE_TOKEN
-              value: {{ .Values.badger.apiToken | quote }}
+            {{- include "envVar" (list "COCOV_BADGER_API_SERVICE_TOKEN" .Values.badger.apiToken) | nindent 12 }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.badger.securityContext }}
             {{ $key }}: {{ toYaml $value }}

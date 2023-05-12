@@ -53,42 +53,34 @@ spec:
            {{- toYaml .Values.worker.dindResources | nindent 12 }}
         - name: worker
           env:
-            - name: DOCKER_SOCKET
-              value: tcp://localhost:2376
-            - name: REDIS_URL
-              value: {{ .Values.redis.commonURL }}
-            - name: DOCKER_TLS_CA_PATH
-              value: /certs/client/ca.pem
-            - name: DOCKER_TLS_CERT_PATH
-              value: /certs/client/cert.pem
-            - name: DOCKER_TLS_KEY_PATH
-              value: /certs/client/key.pem
-            - name: MAX_PARALLEL_JOBS
-              value: {{ .Values.worker.maxParallelJobs | quote }}
-            - name: API_URL
-              value: http://{{ include "clusterLocalHost" (list "api" .)}}
-            - name: SERVICE_TOKEN
-              value: {{ .Values.worker.apiToken }}
-            {{ if and .Values.storage.local.enabled .Values.storage.s3.enabled -}}
-            {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.storage."}}
-            {{- end -}}
-            {{- if .Values.storage.s3.enabled -}}
-            - name: GIT_SERVICE_STORAGE_MODE
-              value: "s3"
-            - name: GIT_SERVICE_S3_BUCKET_NAME
-              value: {{ .Values.storage.s3.bucketName | quote }}
-            {{- else if .Values.storage.local.enabled -}}
-            - name: GIT_SERVICE_STORAGE_MODE
-              value: "local"
-            - name: GIT_SERVICE_LOCAL_STORAGE_PATH
-              value: {{ .Values.storage.local.mountPath | quote }}
-            {{- else -}}
-             {{ fail "No storage mode is configured. Review configuration for cocov.storage"}}
-            {{- end -}}
-            {{- if .Values.cache.enabled }}
-            - name: CACHE_SERVER_URL
-              value: http://{{ include "clusterLocalHost" (list "cache" .) }}
-            {{- end }}
+          {{- $commonKeys := (dict
+            "DOCKER_SOCKET"         "tcp://localhost:2376"
+            "REDIS_URL"             .Values.redis.commonURL
+            "DOCKER_TLS_CA_PATH"    "/certs/client/ca.pem"
+            "DOCKER_TLS_CERT_PATH"  "/certs/client/cert.pem"
+            "DOCKER_TLS_KEY_PATH"   "/certs/client/key.pem"
+            "MAX_PARALLEL_JOBS"     .Values.worker.maxParallelJobs
+            "API_URL"               (printf "http://%s" (include "clusterLocalHost" (list "api" .)))
+            "SERVICE_TOKEN"         .Values.worker.apiToken
+          ) -}}
+          {{- range $k, $v := $commonKeys -}}
+          {{ include "envVar" (list $k $v) | nindent 10 }}
+          {{ end }}
+          {{ if and .Values.storage.local.enabled .Values.storage.s3.enabled -}}
+          {{ fail "Only a single storage mode must be enabled at a single time. Review configuration for cocov.storage."}}
+          {{- end -}}
+          {{- if .Values.storage.s3.enabled -}}
+          {{- include "envVar" (list "GIT_SERVICE_STORAGE_MODE" "s3") | nindent 10 }}
+          {{- include "envVar" (list "GIT_SERVICE_S3_BUCKET_NAME" .Values.storage.s3.bucketName) | nindent 10 }}
+          {{- else if .Values.storage.local.enabled -}}
+          {{- include "envVar" (list "GIT_SERVICE_STORAGE_MODE" "local") | nindent 10 }}
+          {{- include "envVar" (list "GIT_SERVICE_LOCAL_STORAGE_PATH" .Values.storage.local.mountPath) | nindent 10 }}
+          {{- else -}}
+          {{ fail "No storage mode is configured. Review configuration for cocov.storage"}}
+          {{- end -}}
+          {{- if .Values.cache.enabled }}
+          {{- include "envVar" (list "CACHE_SERVER_URL" (printf "http://%s" (include "clusterLocalHost" (list "cache" .)))) | nindent 10 }}
+          {{- end }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.worker.securityContext }}
             {{ $key }}: {{ toYaml $value }}

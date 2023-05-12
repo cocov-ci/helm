@@ -36,7 +36,7 @@ spec:
       containers:
         - name: api
           env:
-          {{- include "apiEnvs" . | nindent 12 }}
+          {{- include "apiEnvs" . | nindent 10 }}
           securityContext:
             {{- range $key, $value := mergeOverwrite .Values.general.securityContext .Values.api.securityContext }}
             {{ $key }}: {{ toYaml $value }}
