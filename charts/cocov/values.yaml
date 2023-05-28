@@ -401,12 +401,9 @@ cache:
 # redis is a required group of values that defines Redis URLs for several
 # different Cocov facilities. In case one does not intend to use different
 # servers for each component, using different databases is recommended. URLs
-# must be provided using the following format: redis[s]://[[USER]:PASSWORD]@HOST:PORT/DATABASE_ID
+# must be provided using the following format: redis[s]://[[USER]:PASSWORD]@HOST[:PORT]/DATABASE_ID
 # See also: https://redis.io/commands/select/
 redis:
-  # When true, other values on this section are ignored.
-  # install: false
-
   # commonURL is the base URL for a redis instance that Cocov will use for primary
   # operations. Those operations are essential for normal operation.
   # This value may be provided as a secretKeyRef or configMapKeyRef.
@@ -418,7 +415,7 @@ redis:
   # This value may be provided as a secretKeyRef or configMapKeyRef.
   cacheURL: ""
 
-  # sidekiqURL is the URL for a Redis used exclusively by SideKiq to schedule
+  # sidekiqURL is the URL for a Redis used exclusively by Sidekiq to schedule
   # and perform background operations.
   # This value may be provided as a secretKeyRef or configMapKeyRef.
   sidekiqURL: ""
